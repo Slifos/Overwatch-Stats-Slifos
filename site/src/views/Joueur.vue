@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { supabase, query } from '../supabase.js';
+import { supabase, query, savePlayerNow } from '../supabase.js';
 import { formatDate, urlToTag } from '../overwatch.js';
 import ModeSwitch from '../components/ModeSwitch.vue';
 import RankCards from '../components/RankCards.vue';
@@ -15,22 +15,40 @@ const snapshots = ref([]); // liste légère (sans les stats) de toutes les sauv
 const selectedId = ref(null);
 const snapshot = ref(null);
 const error = ref('');
+const refreshing = ref(false);
+const refreshMessage = ref('');
 
-watch(() => props.tag, async (tag) => {
+async function load() {
+  const battletag = urlToTag(props.tag);
+  const [found] = await query(supabase.from('players').select('*').eq('battletag', battletag));
+  if (!found) throw new Error(`${battletag} n'est pas suivi`);
+  snapshots.value = await query(
+    supabase.from('snapshots').select('id, gamemode, season, saved_at')
+      .eq('player_id', found.id).order('saved_at', { ascending: false }),
+  );
+  player.value = found;
+}
+
+watch(() => props.tag, async () => {
   error.value = '';
   player.value = null;
-  try {
-    const battletag = urlToTag(tag);
-    [player.value] = await query(supabase.from('players').select('*').eq('battletag', battletag));
-    if (!player.value) throw new Error(`${battletag} n'est pas suivi`);
-    snapshots.value = await query(
-      supabase.from('snapshots').select('id, gamemode, season, saved_at')
-        .eq('player_id', player.value.id).order('saved_at', { ascending: false }),
-    );
-  } catch (e) {
-    error.value = e.message;
-  }
+  await load().catch((e) => { error.value = e.message; });
 }, { immediate: true });
+
+// Récupère les stats du joueur tout de suite, sans attendre la sauvegarde automatique.
+async function refresh() {
+  refreshing.value = true;
+  refreshMessage.value = '';
+  try {
+    const result = await savePlayerNow(player.value.battletag);
+    refreshMessage.value = result.warning ?? (result.saved.length ? '' : 'Rien de nouveau depuis la dernière sauvegarde.');
+    await load();
+  } catch (e) {
+    refreshMessage.value = e.message;
+  } finally {
+    refreshing.value = false;
+  }
+}
 
 // En compétitif, on propose la dernière sauvegarde de chaque saison. En partie rapide, les stats
 // sont cumulées depuis toujours, donc seule la dernière sauvegarde compte.
@@ -74,10 +92,12 @@ watch(selectedId, async (id) => {
       </select>
       <span v-if="snapshot" class="muted">Sauvegardé le {{ formatDate(snapshot.saved_at) }}</span>
       <span v-if="player.last_error" class="loss">{{ player.last_error }}</span>
+      <button :disabled="refreshing" @click="refresh">{{ refreshing ? 'Actualisation…' : 'Actualiser' }}</button>
+      <span v-if="refreshMessage" class="muted">{{ refreshMessage }}</span>
     </div>
 
     <p v-if="!choices.length" class="message">
-      Pas encore de stats dans ce mode. Elles apparaîtront à la prochaine sauvegarde (toutes les 6 h).
+      Pas encore de stats dans ce mode. Clique sur « Actualiser » pour les récupérer.
     </p>
     <p v-else-if="!snapshot" class="message">Chargement…</p>
 

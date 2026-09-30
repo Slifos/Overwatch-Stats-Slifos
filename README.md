@@ -18,12 +18,19 @@ Suit les stats Overwatch (compétitif et partie rapide) d'une liste de joueurs.
    - `SUPABASE_URL` : la même URL
    - `SUPABASE_ANON_KEY` : la clé `anon` (publique)
 4. **GitHub Pages** : Settings → Pages → Source : *GitHub Actions*.
-5. Lance les workflows *Sauvegarde des stats Overwatch* et *Déploiement du site* depuis l'onglet Actions.
+5. **Edge Function** (sauvegarde immédiate quand on ajoute ou actualise un joueur depuis le site) :
+   Supabase → Edge Functions → *Deploy a new function* → *Via Editor*, nomme-la `ajoute-joueur`,
+   colle `supabase/functions/ajoute-joueur/index.ts` → *Deploy*. Puis, dans ses réglages,
+   désactive *Verify JWT* (le site utilise une clé publishable, qui n'est pas un JWT).
+6. Lance les workflows *Sauvegarde des stats Overwatch* et *Déploiement du site* depuis l'onglet Actions.
 
 ## Ajouter un joueur
 
-Depuis le site (champ « Ajouter un joueur »), ou dans Supabase : Table Editor → `players` → Insert,
-en remplissant seulement `battletag` (ex. `Slifos#2280`). Les stats apparaissent à la sauvegarde suivante.
+Depuis le site (champ « Ajouter un joueur ») : ses stats sont récupérées tout de suite. Le bouton
+« Actualiser » de la fiche joueur fait de même pour un joueur déjà suivi.
+
+Ou dans Supabase : Table Editor → `players` → Insert, en remplissant seulement `battletag`
+(ex. `Slifos#2280`). Les stats apparaissent à la sauvegarde suivante, ou dès qu'on clique « Actualiser ».
 
 Un joueur introuvable est désactivé automatiquement (`active = false`). Pour arrêter de suivre
 un joueur, passe `active` à `false` ou supprime sa ligne (ses sauvegardes sont supprimées avec).

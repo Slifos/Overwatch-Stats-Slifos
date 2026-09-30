@@ -12,6 +12,17 @@ const url = clean(import.meta.env.VITE_SUPABASE_URL)
 export const configured = Boolean(url && key);
 export const supabase = configured ? createClient(url, key) : null;
 
+// Ajoute le joueur s'il n'est pas suivi et sauvegarde ses stats tout de suite
+// (Edge Function supabase/functions/ajoute-joueur). Renvoie { battletag, saved, warning? }.
+export async function savePlayerNow(battletag) {
+  const { data, error } = await supabase.functions.invoke('ajoute-joueur', { body: { battletag } });
+  if (error) {
+    const body = await error.context?.json?.().catch(() => null);
+    throw new Error(body?.error ?? error.message);
+  }
+  return data;
+}
+
 // Renvoie les données d'une requête Supabase ou lève son erreur.
 export async function query(request) {
   const { data, error } = await request;
