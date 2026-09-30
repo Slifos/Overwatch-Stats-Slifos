@@ -6,9 +6,21 @@ const API = 'https://overfast-api.tekrop.fr';
 const GAMEMODES = ['competitive', 'quickplay'];
 const PAUSE_MS = 1000; // entre deux joueurs, pour ne pas surcharger l'API
 
-const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = process.env;
+// Tolère les erreurs de copier-coller : espaces, guillemets, https:// oublié, / ou /rest/v1 en trop,
+// et l'adresse du tableau de bord (supabase.com/dashboard/project/<id>) au lieu de celle de l'API.
+const clean = (value) => value?.trim().replace(/^["']|["']$/g, '').trim();
+const SUPABASE_SERVICE_KEY = clean(process.env.SUPABASE_SERVICE_KEY);
+const SUPABASE_URL = clean(process.env.SUPABASE_URL)
+  ?.replace(/^(?:https?:\/\/)?(?:app\.)?supabase\.com\/dashboard\/project\/([a-z0-9]+).*$/i, 'https://$1.supabase.co')
+  .replace(/^(?!https?:\/\/)/, 'https://')
+  .replace(/(\/rest\/v1)?\/*$/, '');
+
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('Il manque SUPABASE_URL ou SUPABASE_SERVICE_KEY.');
+  process.exit(1);
+}
+if (!URL.canParse(SUPABASE_URL) || !new URL(SUPABASE_URL).hostname.includes('.')) {
+  console.error('SUPABASE_URL est invalide : il faut le Project URL, du type https://abcdefgh.supabase.co');
   process.exit(1);
 }
 
@@ -47,6 +59,10 @@ async function db(path, { method = 'GET', body } = {}) {
     },
     body: body && JSON.stringify(body),
   });
+  // Une page HTML au lieu de JSON : SUPABASE_URL pointe vers un site, pas vers l'API.
+  if (res.headers.get('content-type')?.includes('html')) {
+    throw new Error(`${SUPABASE_URL} n'est pas l'URL de l'API Supabase (il faut https://<id-du-projet>.supabase.co)`);
+  }
   if (!res.ok) throw new Error(`Supabase ${method} ${path} : ${res.status} ${await res.text()}`);
   return method === 'GET' ? res.json() : null;
 }
