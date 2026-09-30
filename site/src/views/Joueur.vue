@@ -6,12 +6,13 @@ import ModeSwitch from '../components/ModeSwitch.vue';
 import RankCards from '../components/RankCards.vue';
 import StatTiles from '../components/StatTiles.vue';
 import HeroTable from '../components/HeroTable.vue';
+import SeasonHistory from '../components/SeasonHistory.vue';
 
 const props = defineProps({ tag: { type: String, required: true } });
 
 const mode = ref('competitive');
 const player = ref(null);
-const snapshots = ref([]); // liste légère (sans les stats) de toutes les sauvegardes du joueur
+const snapshots = ref([]); // liste légère (sans le détail des héros) de toutes les sauvegardes du joueur
 const selectedId = ref(null);
 const snapshot = ref(null);
 const error = ref('');
@@ -23,7 +24,7 @@ async function load() {
   const [found] = await query(supabase.from('players').select('*').eq('battletag', battletag));
   if (!found) throw new Error(`${battletag} n'est pas suivi`);
   snapshots.value = await query(
-    supabase.from('snapshots').select('id, gamemode, season, saved_at')
+    supabase.from('snapshots').select('id, gamemode, season, saved_at, games_played, ranks, winrate:general->winrate')
       .eq('player_id', found.id).order('saved_at', { ascending: false }),
   );
   player.value = found;
@@ -103,8 +104,11 @@ watch(selectedId, async (id) => {
 
     <template v-else>
       <template v-if="mode === 'competitive'">
-        <h2>Rangs compétitifs</h2>
+        <h2>Rangs compétitifs · Saison {{ snapshot.season }}</h2>
         <RankCards :ranks="snapshot.ranks" />
+
+        <h2>Historique des saisons</h2>
+        <SeasonHistory :seasons="choices" :selected-id="selectedId" @select="selectedId = $event" />
       </template>
 
       <h2>Général</h2>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { supabase, query } from '../supabase.js';
-import { ROLES, bestRankScore, hours, tagToUrl, useSort } from '../overwatch.js';
+import { ROLES, bestRankScore, hours, rankLabel, tagToUrl, useSort } from '../overwatch.js';
 import AddPlayer from '../components/AddPlayer.vue';
 import ModeSwitch from '../components/ModeSwitch.vue';
 
@@ -84,8 +84,8 @@ const { sortKey, sorted, sortBy, arrow } = useSort(rows, allColumns, 'winrate');
                   <img
                     v-if="p.snap.ranks?.[role.key]"
                     :src="p.snap.ranks[role.key].rank_icon"
-                    :title="`${role.label} : ${p.snap.ranks[role.key].division} ${p.snap.ranks[role.key].tier}`"
-                    :alt="`${role.label} ${p.snap.ranks[role.key].division} ${p.snap.ranks[role.key].tier}`"
+                    :title="`${role.label} : ${rankLabel(p.snap.ranks[role.key])}`"
+                    :alt="`${role.label} ${rankLabel(p.snap.ranks[role.key])}`"
                   >
                   <span v-else class="none" :title="`${role.label} : non classé`">–</span>
                 </template>

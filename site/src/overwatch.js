@@ -26,6 +26,18 @@ const DIVISIONS = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 
 export const rankScore = (r) => (r ? DIVISIONS.indexOf(r.division) * 5 + (6 - r.tier) : 0);
 export const bestRankScore = (ranks) => Math.max(0, ...ROLES.map((role) => rankScore(ranks?.[role.key])));
 
+const DIVISION_LABELS = {
+  bronze: 'Bronze',
+  silver: 'Argent',
+  gold: 'Or',
+  platinum: 'Platine',
+  diamond: 'Diamant',
+  master: 'Maître',
+  grandmaster: 'Grand maître',
+  champion: 'Champion',
+};
+export const rankLabel = (r) => (r ? `${DIVISION_LABELS[r.division] ?? r.division} ${r.tier}` : 'Non classé');
+
 export const hours = (s) => `${(s / 3600).toFixed(1)} h`;
 export const number = (n) => Math.round(n).toLocaleString('fr-FR');
 export const formatDate = (iso) => new Date(iso).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
