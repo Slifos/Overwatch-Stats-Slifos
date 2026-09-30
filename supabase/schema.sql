@@ -43,6 +43,7 @@ create policy "lecture publique" on players for select using (true);
 create policy "ajout public" on players for insert to anon, authenticated with check (true);
 create policy "lecture publique" on snapshots for select using (true);
 
-revoke insert, update, delete on players from anon, authenticated;
+revoke all on players, snapshots, latest_snapshots from anon, authenticated;
+grant select on players, snapshots, latest_snapshots to anon, authenticated;
 grant insert (battletag) on players to anon, authenticated;
-revoke insert, update, delete on snapshots from anon, authenticated;
+grant all on players, snapshots, latest_snapshots to service_role;
